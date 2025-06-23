@@ -1,0 +1,4 @@
+this document covers custom details of user's system.
+user is developing a digtal city for pigeons and rabbits. 
+rabbits are in habbit of commiting mischievous acts and hiding.
+though cats help to befriend the rabits and make the whole environment much more friendly.

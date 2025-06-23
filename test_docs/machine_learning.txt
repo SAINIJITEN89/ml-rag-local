@@ -1,0 +1,52 @@
+Machine Learning Fundamentals
+
+Machine Learning (ML) is a subset of artificial intelligence that enables computers to learn and make decisions from data without being explicitly programmed for every task.
+
+Types of Machine Learning:
+
+1. Supervised Learning
+   - Uses labeled training data
+   - Goal: predict outcomes for new data
+   - Examples: Classification, Regression
+   - Algorithms: Linear Regression, Decision Trees, Random Forest, SVM
+
+2. Unsupervised Learning
+   - Uses unlabeled data
+   - Goal: discover hidden patterns
+   - Examples: Clustering, Dimensionality Reduction
+   - Algorithms: K-Means, Hierarchical Clustering, PCA
+
+3. Reinforcement Learning
+   - Learns through interaction with environment
+   - Uses rewards and penalties
+   - Examples: Game playing, Robotics
+   - Algorithms: Q-Learning, Policy Gradient
+
+Key Concepts:
+
+Training Data: The dataset used to train the model
+Test Data: The dataset used to evaluate model performance
+Features: Input variables used to make predictions
+Labels: Output variables (in supervised learning)
+Overfitting: When a model performs well on training data but poorly on new data
+Underfitting: When a model is too simple to capture underlying patterns
+
+Model Evaluation Metrics:
+- Accuracy: Percentage of correct predictions
+- Precision: True positives / (True positives + False positives)
+- Recall: True positives / (True positives + False negatives)
+- F1-Score: Harmonic mean of precision and recall
+- Mean Squared Error (MSE): For regression problems
+
+Cross-Validation:
+A technique to assess how well a model will generalize to unseen data by dividing the dataset into multiple folds.
+
+Feature Engineering:
+The process of selecting, transforming, and creating features from raw data to improve model performance.
+
+Popular ML Libraries:
+- Scikit-learn: General-purpose ML library
+- TensorFlow: Deep learning framework
+- PyTorch: Deep learning framework
+- XGBoost: Gradient boosting library
+- Keras: High-level neural network API

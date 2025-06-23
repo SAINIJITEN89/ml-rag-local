@@ -1,0 +1,27 @@
+Large Document Test - Chapter 1: Introduction
+
+This is a test document to verify that the RAG system can handle larger documents with multiple chunks. We will repeat content to create a substantial amount of text that should be split into multiple chunks by the chunking algorithm.
+
+Python is a versatile programming language. Python is easy to learn. Python has extensive libraries. Python supports multiple paradigms. Python is interpreted. Python is dynamically typed.
+
+Machine learning is a subset of AI. Machine learning uses algorithms to learn patterns. Machine learning requires data. Machine learning can make predictions. Machine learning includes supervised learning. Machine learning includes unsupervised learning.
+
+Web development involves frontend and backend. Frontend handles user interfaces. Backend handles server logic. Web development uses HTML, CSS, and JavaScript. Web development frameworks include React, Angular, and Vue.js.
+
+Chapter 2: Advanced Topics
+
+Data science combines statistics and programming. Data science uses Python libraries like pandas and numpy. Data science involves data cleaning and preprocessing. Data science requires visualization tools like matplotlib. Data science uses machine learning for insights.
+
+Cloud computing provides scalable infrastructure. Cloud platforms include AWS, Azure, and Google Cloud. Cloud services include compute, storage, and networking. Cloud deployment models include public, private, and hybrid clouds.
+
+DevOps bridges development and operations. DevOps uses automation tools. DevOps implements CI/CD pipelines. DevOps monitors application performance. DevOps ensures reliable deployments.
+
+Chapter 3: Future Technologies
+
+Artificial intelligence is transforming industries. AI includes natural language processing. AI uses neural networks and deep learning. AI applications include computer vision and robotics. AI requires large datasets and computational power.
+
+Blockchain technology provides decentralized systems. Blockchain ensures data integrity and transparency. Blockchain applications include cryptocurrencies and smart contracts. Blockchain uses consensus mechanisms for validation.
+
+Internet of Things connects devices globally. IoT enables smart homes and cities. IoT generates massive amounts of data. IoT requires edge computing for real-time processing. IoT security is a critical concern.
+
+This concludes our large document test. The content has been designed to test chunking, embedding generation, and retrieval across multiple topics and sections.
