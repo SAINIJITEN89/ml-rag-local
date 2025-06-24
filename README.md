@@ -138,7 +138,19 @@ python cli.py interactive
 python cli.py add /path/to/document.pdf
 
 # Check what's in your database
-python -c "from rag_system import RAGSystem; rag=RAGSystem(); print(f'Documents: {rag.vectordb.count()}')"
+python cli.py list
+```
+
+**Managing Documents:**
+```bash
+# List all documents in knowledge base
+python cli.py list
+
+# Remove specific document
+python cli.py remove /path/to/document.pdf
+
+# Clear all documents (with confirmation)
+python cli.py clear
 ```
 
 **Important:** Documents must be explicitly added to the vector database. Simply placing files in a folder doesn't automatically index them.
@@ -174,6 +186,11 @@ python cli.py interactive
 
 # In interactive mode:
 > add new_document.pdf           # Add document
+> remove old_document.pdf        # Remove document
+> list                          # Show all documents
+> clear_docs                    # Clear all documents
+> reset                         # Clear conversation history
+> history                       # Show conversation history
 > What is Python?               # Ask question
 > help                          # Show commands
 > quit                          # Exit
