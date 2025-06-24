@@ -84,3 +84,8 @@ coverage.xml
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Evaluation directory
+evaluation/results/
+evaluation/evaluation/results/
+evaluation/vector_db/

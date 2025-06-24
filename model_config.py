@@ -19,23 +19,29 @@ class ModelConfig:
             'speed': 'fast',
             'use_case': 'Balanced quality and speed'
         },
+        'phi3:3.8b': {
+            'memory_gb': 2.5,
+            'quality': 'good',
+            'speed': 'fast',
+            'use_case': 'Efficient reasoning, good instruction following'
+        },
+        'phi3:mini': {
+            'memory_gb': 2.3,
+            'quality': 'good',
+            'speed': 'fast',
+            'use_case': 'Compact high-quality model, excellent for reasoning'
+        },
+        'phi3.5:3.8b': {
+            'memory_gb': 2.6,
+            'quality': 'very_good',
+            'speed': 'fast',
+            'use_case': 'Latest Phi model, improved reasoning capabilities'
+        },
         'codellama:7b': {
             'memory_gb': 4.5,
             'quality': 'very_good',
             'speed': 'moderate',
             'use_case': 'Code-focused, good reasoning'
-        },
-        'llama2:13b': {
-            'memory_gb': 8.0,
-            'quality': 'excellent',
-            'speed': 'slow',
-            'use_case': 'High quality responses'
-        },
-        'qwen3:14b': {
-            'memory_gb': 10.0,
-            'quality': 'excellent',
-            'speed': 'very_slow',
-            'use_case': 'Best quality, complex reasoning'
         }
     }
     

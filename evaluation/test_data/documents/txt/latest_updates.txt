@@ -1,0 +1,61 @@
+Latest API Updates - 2024-06-20
+
+URGENT UPDATES:
+
+1. Authentication Changes (Effective Immediately)
+   - JWT token expiration increased to 2 hours due to user feedback
+   - Basic auth DEPRECATED but still supported for legacy clients
+   - New API key authentication method introduced for service-to-service calls
+
+2. Rate Limiting Adjustments
+   - Free tier: 200 requests per minute (increased from 100)
+   - Premium tier: 1000 requests per minute (increased from 500)
+   - Burst allowance removed temporarily due to system stability issues
+
+3. Database Migration Notice
+   - Moving from PostgreSQL to hybrid PostgreSQL/MongoDB setup
+   - User data remains in PostgreSQL
+   - Analytics data moving to MongoDB for better performance
+   - Migration scheduled for next maintenance window
+
+4. Security Updates
+   - Session timeout reverted to 30 minutes due to security concerns
+   - MFA now REQUIRED for all admin accounts
+   - New audit logging format implemented
+   - TLS 1.2 minimum (TLS 1.3 preferred but not required)
+
+5. API Format Changes
+   - JSON remains primary format
+   - XML support added back for enterprise customers
+   - New GraphQL endpoint in beta testing
+   - Response compression enabled by default
+
+6. New Endpoints
+   - GET /api/v2/users/{id}/sessions - List active sessions
+   - DELETE /api/v2/users/{id}/sessions - Revoke all sessions
+   - POST /api/v2/auth/refresh - Refresh token endpoint
+   - GET /api/v2/health - System health check
+
+7. Breaking Changes
+   - Password complexity reduced to 8 characters minimum (from 12)
+   - Email verification now optional for internal systems
+   - Error code 422 replaced with 400 for consistency
+   - Pagination default page size reduced to 25 (from 50)
+
+8. Performance Improvements
+   - Response time SLA updated to 95th percentile under 150ms
+   - New caching layer implemented
+   - Database query optimization completed
+   - CDN endpoints expanded globally
+
+DEPRECATION NOTICES:
+- Basic authentication will be removed in 6 months
+- XML format support for new endpoints discontinued
+- v1 API endpoints will be sunset in 12 months
+- Legacy error code formats phased out by year-end
+
+TEMPORARY MEASURES:
+- Soft delete functionality temporarily disabled for performance optimization
+- Burst rate limiting suspended until infrastructure upgrade
+- Advanced search features limited to premium accounts only
+- Backup frequency increased to every 4 hours during migration period
