@@ -18,6 +18,16 @@ def main():
     analyze_parser = subparsers.add_parser('analyze', help='Analyze document extraction and chunking')
     analyze_parser.add_argument('file_path', help='Path to document file')
     
+    # Remove document command
+    remove_parser = subparsers.add_parser('remove', help='Remove document from knowledge base')
+    remove_parser.add_argument('file_path', help='Path to document file to remove')
+    
+    # List documents command
+    list_parser = subparsers.add_parser('list', help='List all documents in knowledge base')
+    
+    # Clear command
+    clear_parser = subparsers.add_parser('clear', help='Clear all documents from knowledge base')
+    
     # Query command
     query_parser = subparsers.add_parser('query', help='Search knowledge base')
     query_parser.add_argument('question', help='Question to ask')
@@ -27,8 +37,8 @@ def main():
                              help='LLM model to use (default: auto-select based on resources)')
     query_parser.add_argument('--debug', '-d', action='store_true',
                              help='Enable debug mode to show retrieved chunks')
-    query_parser.add_argument('--timeout', '-t', type=int, default=200,
-                             help='Request timeout in seconds (default: 200)')
+    query_parser.add_argument('--timeout', '-t', type=int, default=600,
+                             help='Request timeout in seconds (default: 600)')
     
     # Interactive mode
     interactive_parser = subparsers.add_parser('interactive', help='Start interactive mode')
@@ -66,6 +76,31 @@ def main():
             print(f"Error analyzing document: {e}")
             sys.exit(1)
     
+    elif args.command == 'remove':
+        try:
+            rag.remove_document(args.file_path)
+        except Exception as e:
+            print(f"Error removing document: {e}")
+            sys.exit(1)
+    
+    elif args.command == 'list':
+        try:
+            rag.show_documents()
+        except Exception as e:
+            print(f"Error listing documents: {e}")
+            sys.exit(1)
+    
+    elif args.command == 'clear':
+        try:
+            response = input("Are you sure you want to clear all documents? (y/N): ")
+            if response.lower() in ['y', 'yes']:
+                rag.clear_knowledge_base()
+            else:
+                print("Operation cancelled.")
+        except Exception as e:
+            print(f"Error clearing knowledge base: {e}")
+            sys.exit(1)
+    
     elif args.command == 'query':
         try:
             result = rag.query(args.question, args.results, debug=args.debug, timeout=args.timeout)
@@ -93,9 +128,14 @@ def main():
                 
                 if user_input.lower() == 'help':
                     print("Commands:")
-                    print("  add <file_path>  - Add document to knowledge base")
-                    print("  <question>       - Ask a question")
-                    print("  quit/exit        - Exit interactive mode")
+                    print("  add <file_path>    - Add document to knowledge base")
+                    print("  remove <file_path> - Remove document from knowledge base")
+                    print("  list               - Show all documents in knowledge base")
+                    print("  clear_docs         - Clear all documents (with confirmation)")
+                    print("  reset              - Clear conversation history")
+                    print("  history            - Show conversation history")
+                    print("  <question>         - Ask a question")
+                    print("  quit/exit          - Exit interactive mode")
                     continue
                 
                 if user_input.startswith('add '):
@@ -111,14 +151,51 @@ def main():
                         print(f"Error: {e}")
                     continue
                 
+                if user_input.lower() == 'reset':
+                    rag.reset_conversation()
+                    continue
+                
+                if user_input.lower() == 'history':
+                    rag.show_conversation()
+                    continue
+                
+                if user_input.startswith('remove '):
+                    file_path = user_input[7:].strip()
+                    try:
+                        rag.remove_document(file_path)
+                    except Exception as e:
+                        print(f"Error: {e}")
+                    continue
+                
+                if user_input.lower() == 'list':
+                    try:
+                        rag.show_documents()
+                    except Exception as e:
+                        print(f"Error: {e}")
+                    continue
+                
+                if user_input.lower() == 'clear_docs':
+                    try:
+                        response = input("Are you sure you want to clear all documents? (y/N): ")
+                        if response.lower() in ['y', 'yes']:
+                            rag.clear_knowledge_base()
+                        else:
+                            print("Operation cancelled.")
+                    except Exception as e:
+                        print(f"Error: {e}")
+                    continue
+                
                 if not user_input:
                     continue
                 
                 # Treat as query
                 try:
-                    result = rag.query(user_input)
+                    result = rag.query(user_input, use_conversation=True, timeout=600)
                     print(f"\nAnswer: {result['answer']}")
                     print(f"Sources: {', '.join(set(result['sources']))}")
+                    if result['conversation_mode']:
+                        conv_info = rag.get_conversation_info()
+                        print(f"Conversation: {conv_info['history_length']}/{conv_info['memory_capacity']} exchanges")
                 except Exception as e:
                     print(f"Error: {e}")
                     

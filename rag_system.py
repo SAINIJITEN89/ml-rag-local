@@ -126,12 +126,16 @@ class DocumentProcessor:
 
 
 class RAGSystem:
-    def __init__(self, persist_directory: str = "./vector_db", llm_model: str = "auto"):
+    def __init__(self, persist_directory: str = "./vector_db", llm_model: str = "auto", conversation_memory_size: int = 5):
         self.persist_directory = persist_directory
         self.vectordb = SimpleVectorDB(persist_directory)
         self.embeddings = OllamaEmbeddings()
         self.processor = DocumentProcessor()
         self.llm_url = "http://localhost:11434/api/generate"
+        
+        # Simple conversation memory
+        self.conversation_history = []
+        self.conversation_memory_size = conversation_memory_size
         
         # Auto-select model based on system resources
         if llm_model == "auto":
@@ -221,14 +225,22 @@ class RAGSystem:
         
         return search_results
     
-    def generate_response(self, query: str, context: str, model: str = None, timeout: int = 200) -> str:
+    def generate_response(self, query: str, context: str, model: str = None, timeout: int = 600, use_conversation: bool = False) -> str:
         if model is None:
             model = self.llm_model
-        prompt = f"""Answer this question using only the context provided. Be concise.
+        
+        # Build conversation context if available
+        conversation_context = ""
+        if use_conversation and self.conversation_history:
+            conversation_context = "\nPrevious conversation:\n"
+            for i, exchange in enumerate(self.conversation_history):
+                conversation_context += f"Q{i+1}: {exchange['question']}\nA{i+1}: {exchange['answer']}\n"
+            conversation_context += "\n"
+        
+        prompt = f"""Answer this question using the context provided. If there's previous conversation, consider it for continuity.{conversation_context}
+Document context: {context}
 
-Context: {context}
-
-Question: {query}
+Current question: {query}
 
 Answer:"""
         
@@ -257,21 +269,26 @@ Answer:"""
         except Exception as e:
             return f"Error generating response: {str(e)}"
     
-    def query(self, question: str, n_results: int = 15, debug: bool = False, timeout: int = 200) -> Dict[str, Any]:
+    def query(self, question: str, n_results: int = 15, debug: bool = False, timeout: int = 600, use_conversation: bool = False) -> Dict[str, Any]:
         # Search for relevant documents
         search_results = self.search(question, n_results)
         
         # Prepare context from search results
         context = "\n\n".join([result['content'] for result in search_results])
         
-        # Generate response using LLM
-        response = self.generate_response(question, context, timeout=timeout)
+        # Generate response using LLM with conversation context if enabled
+        response = self.generate_response(question, context, timeout=timeout, use_conversation=use_conversation)
+        
+        # Update conversation history if using conversation mode
+        if use_conversation:
+            self._update_conversation_history(question, response)
         
         result = {
             'question': question,
             'answer': response,
             'sources': [result['metadata']['source'] for result in search_results],
-            'context_chunks': len(search_results)
+            'context_chunks': len(search_results),
+            'conversation_mode': use_conversation
         }
         
         if debug:
@@ -283,9 +300,92 @@ Answer:"""
                 print(f"Full content length: {len(chunk_result['content'])} characters")
             
             print(f"\n=== Total context length: {len(context)} characters ===")
+            
+            if use_conversation and self.conversation_history:
+                print(f"\n=== Conversation History ({len(self.conversation_history)} exchanges) ===")
+                for i, exchange in enumerate(self.conversation_history):
+                    print(f"Exchange {i+1}: {exchange['question'][:100]}...")
+            
             result['debug_info'] = {
                 'retrieved_chunks': search_results,
-                'total_context_length': len(context)
+                'total_context_length': len(context),
+                'conversation_length': len(self.conversation_history)
             }
         
         return result
+    
+    def _update_conversation_history(self, question: str, answer: str) -> None:
+        """Update conversation history with FIFO buffer"""
+        self.conversation_history.append({
+            'question': question,
+            'answer': answer
+        })
+        
+        # Keep only the last N exchanges
+        if len(self.conversation_history) > self.conversation_memory_size:
+            self.conversation_history.pop(0)
+    
+    def reset_conversation(self) -> None:
+        """Clear conversation history"""
+        self.conversation_history = []
+        print("Conversation history cleared.")
+    
+    def show_conversation(self) -> None:
+        """Display current conversation history"""
+        if not self.conversation_history:
+            print("No conversation history.")
+            return
+        
+        print(f"\n=== Conversation History ({len(self.conversation_history)} exchanges) ===")
+        for i, exchange in enumerate(self.conversation_history):
+            print(f"\nQ{i+1}: {exchange['question']}")
+            print(f"A{i+1}: {exchange['answer'][:200]}..." if len(exchange['answer']) > 200 else f"A{i+1}: {exchange['answer']}")
+        print(f"\nMemory capacity: {len(self.conversation_history)}/{self.conversation_memory_size}")
+    
+    def get_conversation_info(self) -> Dict[str, Any]:
+        """Get conversation statistics"""
+        return {
+            'history_length': len(self.conversation_history),
+            'memory_capacity': self.conversation_memory_size,
+            'has_conversation': len(self.conversation_history) > 0
+        }
+    
+    def remove_document(self, file_path: str) -> int:
+        """Remove a document and all its chunks from the knowledge base"""
+        removed_count = self.vectordb.remove_by_source(file_path)
+        if removed_count > 0:
+            print(f"Removed {removed_count} chunks from {file_path}")
+        else:
+            print(f"No chunks found for {file_path}")
+        return removed_count
+    
+    def list_documents(self) -> List[str]:
+        """List all documents in the knowledge base"""
+        return self.vectordb.list_sources()
+    
+    def get_document_info(self) -> Dict[str, int]:
+        """Get information about documents and their chunk counts"""
+        return self.vectordb.get_source_info()
+    
+    def show_documents(self) -> None:
+        """Display all documents in the knowledge base with their chunk counts"""
+        doc_info = self.get_document_info()
+        if not doc_info:
+            print("No documents in knowledge base.")
+            return
+        
+        print(f"\n=== Knowledge Base Documents ({len(doc_info)} files) ===")
+        total_chunks = 0
+        for source, chunk_count in doc_info.items():
+            print(f"{chunk_count:3d} chunks: {source}")
+            total_chunks += chunk_count
+        print(f"\nTotal: {total_chunks} chunks across {len(doc_info)} documents")
+    
+    def clear_knowledge_base(self) -> int:
+        """Remove all documents from the knowledge base"""
+        removed_count = self.vectordb.clear_all()
+        if removed_count > 0:
+            print(f"Cleared knowledge base: removed {removed_count} chunks")
+        else:
+            print("Knowledge base was already empty")
+        return removed_count

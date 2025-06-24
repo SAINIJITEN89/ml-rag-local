@@ -103,3 +103,52 @@ class SimpleVectorDB:
     def count(self) -> int:
         """Return the number of documents in the database"""
         return len(self.documents)
+    
+    def remove_by_source(self, source_path: str) -> int:
+        """Remove all chunks from a specific document source"""
+        removed_count = 0
+        indices_to_remove = []
+        
+        # Find all indices with matching source
+        for i, metadata in enumerate(self.metadatas):
+            if metadata.get('source') == source_path:
+                indices_to_remove.append(i)
+        
+        # Remove in reverse order to maintain correct indices
+        for i in reversed(indices_to_remove):
+            self.documents.pop(i)
+            self.embeddings.pop(i)
+            self.metadatas.pop(i)
+            self.ids.pop(i)
+            removed_count += 1
+        
+        if removed_count > 0:
+            self.save()
+        
+        return removed_count
+    
+    def list_sources(self) -> List[str]:
+        """Get list of unique document sources"""
+        sources = set()
+        for metadata in self.metadatas:
+            if 'source' in metadata:
+                sources.add(metadata['source'])
+        return sorted(list(sources))
+    
+    def get_source_info(self) -> Dict[str, int]:
+        """Get document sources with chunk counts"""
+        source_counts = {}
+        for metadata in self.metadatas:
+            source = metadata.get('source', 'unknown')
+            source_counts[source] = source_counts.get(source, 0) + 1
+        return source_counts
+    
+    def clear_all(self) -> int:
+        """Remove all documents from the database"""
+        count = len(self.documents)
+        self.documents = []
+        self.embeddings = []
+        self.metadatas = []
+        self.ids = []
+        self.save()
+        return count

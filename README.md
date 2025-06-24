@@ -158,7 +158,7 @@ python cli.py query "question" --results 20
 # Enable debug mode to see retrieved chunks
 python cli.py query "question" --debug
 
-# Set custom timeout (default: 200 seconds)
+# Set custom timeout (default: 600 seconds / 10 minutes)
 python cli.py query "question" --timeout 300
 
 # Force specific model
@@ -277,7 +277,7 @@ CHUNK_OVERLAP = 400                      # token overlap between chunks
 VECTOR_DB_PATH = "./vector_db/"          # database location
 DEFAULT_RESULTS = 15                     # chunks retrieved per query (increased)
 RESPONSE_LIMIT = 1500                    # max tokens in response (increased)
-TIMEOUT = 200                           # request timeout in seconds
+TIMEOUT = 600                           # request timeout in seconds (10 minutes)
 ```
 
 ### Custom Configuration
