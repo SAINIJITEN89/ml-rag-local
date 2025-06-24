@@ -128,8 +128,8 @@ python cli.py interactive
 ### Document Management
 
 **Supported Formats:**
-- **PDF files** (`.pdf`) - Extracts text content
-- **Word documents** (`.docx`) - Reads paragraphs and text
+- **PDF files** (`.pdf`) - Extracts text content with OCR fallback
+- **Word documents** (`.docx`) - Reads paragraphs, tables, headers, and footers
 - **Text files** (`.txt`) - Plain text content
 
 **Adding Documents:**
@@ -152,14 +152,20 @@ python cli.py query "What are the key points about machine learning?"
 
 **Query Options:**
 ```bash
-# Specify number of context chunks (default: 5)
-python cli.py query "question" --results 3
+# Specify number of context chunks (default: 15)
+python cli.py query "question" --results 20
+
+# Enable debug mode to see retrieved chunks
+python cli.py query "question" --debug
+
+# Set custom timeout (default: 200 seconds)
+python cli.py query "question" --timeout 300
 
 # Force specific model
 python cli.py query "question" --model llama3.2:1b
 
-# Combine options
-python cli.py query "question" --model codellama:7b --results 2
+# Combine all options
+python cli.py query "question" --model codellama:7b --results 10 --debug --timeout 400
 ```
 
 **Interactive Mode:**
@@ -266,9 +272,12 @@ python cli.py query "What are the coding best practices?" --model codellama:7b
 # System defaults (configured automatically)
 EMBEDDING_MODEL = "nomic-embed-text"     # 274MB
 LLM_MODEL = "auto"                       # Selected based on RAM
-CHUNK_SIZE = 1000                        # tokens per chunk
-CHUNK_OVERLAP = 200                      # token overlap between chunks
+CHUNK_SIZE = 3000                        # tokens per chunk (increased for better context)
+CHUNK_OVERLAP = 400                      # token overlap between chunks
 VECTOR_DB_PATH = "./vector_db/"          # database location
+DEFAULT_RESULTS = 15                     # chunks retrieved per query (increased)
+RESPONSE_LIMIT = 1500                    # max tokens in response (increased)
+TIMEOUT = 200                           # request timeout in seconds
 ```
 
 ### Custom Configuration
@@ -282,7 +291,13 @@ rag = RAGSystem(llm_model="codellama:7b")
 **Adjust chunking:**
 ```python
 # Edit DocumentProcessor parameters
-processor = DocumentProcessor(chunk_size=500, chunk_overlap=100)
+processor = DocumentProcessor(chunk_size=2000, chunk_overlap=300)
+```
+
+**Analyze document processing:**
+```bash
+# Check how documents are being chunked
+python cli.py analyze path/to/document.docx
 ```
 
 ## 🚨 Troubleshooting
@@ -310,10 +325,13 @@ python cli.py query "question" --model llama3.2:1b
 **3. Slow responses:**
 ```bash
 # Reduce context chunks
-python cli.py query "question" --results 2
+python cli.py query "question" --results 5
 
 # Use faster model
 python cli.py query "question" --model llama3.2:1b
+
+# Reduce timeout for quicker failures
+python cli.py query "question" --timeout 60
 ```
 
 **4. "Document not found in responses":**
@@ -339,13 +357,13 @@ curl http://localhost:11434/api/tags
 **For Low-Resource Systems:**
 ```bash
 # Minimal resource usage
-python cli.py query "question" --model llama3.2:1b --results 1
+python cli.py query "question" --model llama3.2:1b --results 5 --timeout 60
 ```
 
 **For High-Resource Systems:**
 ```bash
 # Maximum quality
-python cli.py query "question" --model qwen3:14b --results 5
+python cli.py query "question" --model qwen3:14b --results 25 --timeout 400
 ```
 
 **Monitor During Usage:**
@@ -367,7 +385,8 @@ rag/
 ├── README.md            # This documentation
 ├── .gitignore           # Git ignore rules
 ├── vector_db/           # Vector database (auto-created)
-├── test_docs/           # Example documents
+├── test_docs/           # Example documents  
+├── test_improvements.py # Test script for improvements
 └── venv/               # Virtual environment (if created)
 ```
 

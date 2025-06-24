@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional
 from simple_vectordb import SimpleVectorDB
 from model_config import ModelConfig
 import hashlib
-import PyPDF2
+import fitz  # PyMuPDF
 import docx
 import tiktoken
 
@@ -33,7 +33,7 @@ class OllamaEmbeddings:
 
 
 class DocumentProcessor:
-    def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 200):
+    def __init__(self, chunk_size: int = 3000, chunk_overlap: int = 400):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.encoding = tiktoken.get_encoding("cl100k_base")
@@ -53,15 +53,65 @@ class DocumentProcessor:
     
     def _extract_pdf(self, file_path: str) -> str:
         text = ""
-        with open(file_path, 'rb') as file:
-            pdf_reader = PyPDF2.PdfReader(file)
-            for page in pdf_reader.pages:
-                text += page.extract_text()
+        try:
+            doc = fitz.open(file_path)
+            for page_num in range(doc.page_count):
+                page = doc[page_num]
+                # Try text extraction first (fast)
+                page_text = page.get_text()
+                if not page_text.strip():
+                    # Try OCR if available
+                    try:
+                        pix = page.get_pixmap()
+                        ocr_text = page.get_textpage_ocr().extractText()
+                        page_text = ocr_text
+                    except Exception as ocr_e:
+                        print(f"Warning: OCR failed for page {page_num + 1} in {file_path}: {ocr_e}")
+                        print("Note: Install tesseract-ocr for image-based PDF support")
+                        page_text = ""
+                text += page_text + "\n"
+            doc.close()
+        except Exception as e:
+            print(f"Warning: Could not extract text from {file_path}: {e}")
         return text
     
     def _extract_docx(self, file_path: str) -> str:
         doc = docx.Document(file_path)
-        return "\n".join([paragraph.text for paragraph in doc.paragraphs])
+        full_text = []
+        
+        # Extract paragraphs
+        for paragraph in doc.paragraphs:
+            if paragraph.text.strip():
+                full_text.append(paragraph.text)
+        
+        # Extract tables
+        for table in doc.tables:
+            for row in table.rows:
+                row_text = []
+                for cell in row.cells:
+                    cell_text = cell.text.strip()
+                    if cell_text:
+                        row_text.append(cell_text)
+                if row_text:
+                    full_text.append(" | ".join(row_text))
+        
+        # Extract headers and footers from each section
+        for section in doc.sections:
+            # Extract headers
+            if section.header:
+                for paragraph in section.header.paragraphs:
+                    if paragraph.text.strip():
+                        full_text.append(f"[HEADER] {paragraph.text}")
+            
+            # Extract footers
+            if section.footer:
+                for paragraph in section.footer.paragraphs:
+                    if paragraph.text.strip():
+                        full_text.append(f"[FOOTER] {paragraph.text}")
+        
+        extracted_text = "\n".join(full_text)
+        print(f"Extracted {len(extracted_text)} characters from DOCX")
+        return extracted_text
     
     def chunk_text(self, text: str) -> List[str]:
         tokens = self.encoding.encode(text)
@@ -117,7 +167,43 @@ class RAGSystem:
         
         print(f"Added {len(chunks)} chunks from {file_path}")
     
-    def search(self, query: str, n_results: int = 5) -> List[Dict[str, Any]]:
+    def analyze_document(self, file_path: str) -> Dict[str, Any]:
+        """Analyze document extraction and chunking without adding to vector DB"""
+        print(f"Analyzing document: {file_path}")
+        
+        # Load and process document
+        text = self.processor.load_document(file_path)
+        chunks = self.processor.chunk_text(text)
+        
+        # Calculate statistics
+        total_chars = len(text)
+        total_tokens = len(self.processor.encoding.encode(text))
+        chunk_sizes = [len(chunk) for chunk in chunks]
+        chunk_tokens = [len(self.processor.encoding.encode(chunk)) for chunk in chunks]
+        
+        analysis = {
+            'file_path': file_path,
+            'total_characters': total_chars,
+            'total_tokens': total_tokens,
+            'num_chunks': len(chunks),
+            'avg_chunk_chars': sum(chunk_sizes) / len(chunk_sizes) if chunks else 0,
+            'avg_chunk_tokens': sum(chunk_tokens) / len(chunk_tokens) if chunks else 0,
+            'min_chunk_tokens': min(chunk_tokens) if chunks else 0,
+            'max_chunk_tokens': max(chunk_tokens) if chunks else 0,
+            'chunk_token_distribution': chunk_tokens
+        }
+        
+        print(f"Document Analysis:")
+        print(f"  File: {file_path}")
+        print(f"  Total characters: {total_chars:,}")
+        print(f"  Total tokens: {total_tokens:,}")
+        print(f"  Number of chunks: {len(chunks)}")
+        print(f"  Average chunk size: {analysis['avg_chunk_tokens']:.0f} tokens")
+        print(f"  Chunk size range: {analysis['min_chunk_tokens']}-{analysis['max_chunk_tokens']} tokens")
+        
+        return analysis
+    
+    def search(self, query: str, n_results: int = 15) -> List[Dict[str, Any]]:
         # Generate query embedding
         query_embedding = self.embeddings.embed_query(query)
         
@@ -135,7 +221,7 @@ class RAGSystem:
         
         return search_results
     
-    def generate_response(self, query: str, context: str, model: str = None) -> str:
+    def generate_response(self, query: str, context: str, model: str = None, timeout: int = 200) -> str:
         if model is None:
             model = self.llm_model
         prompt = f"""Answer this question using only the context provided. Be concise.
@@ -156,10 +242,10 @@ Answer:"""
                     "options": {
                         "temperature": 0.1,
                         "top_p": 0.9,
-                        "num_predict": 150
+                        "num_predict": 1500
                     }
                 },
-                timeout=200  # 200 second timeout
+                timeout=timeout
             )
             
             if response.status_code == 200:
@@ -171,7 +257,7 @@ Answer:"""
         except Exception as e:
             return f"Error generating response: {str(e)}"
     
-    def query(self, question: str, n_results: int = 5) -> Dict[str, Any]:
+    def query(self, question: str, n_results: int = 15, debug: bool = False, timeout: int = 200) -> Dict[str, Any]:
         # Search for relevant documents
         search_results = self.search(question, n_results)
         
@@ -179,11 +265,27 @@ Answer:"""
         context = "\n\n".join([result['content'] for result in search_results])
         
         # Generate response using LLM
-        response = self.generate_response(question, context)
+        response = self.generate_response(question, context, timeout=timeout)
         
-        return {
+        result = {
             'question': question,
             'answer': response,
             'sources': [result['metadata']['source'] for result in search_results],
             'context_chunks': len(search_results)
         }
+        
+        if debug:
+            print(f"\n=== DEBUG: Retrieved {len(search_results)} chunks ===")
+            for i, chunk_result in enumerate(search_results):
+                print(f"\nChunk {i+1} (distance: {chunk_result['distance']:.4f}):")
+                print(f"Source: {chunk_result['metadata']['source']}")
+                print(f"Content preview: {chunk_result['content'][:200]}...")
+                print(f"Full content length: {len(chunk_result['content'])} characters")
+            
+            print(f"\n=== Total context length: {len(context)} characters ===")
+            result['debug_info'] = {
+                'retrieved_chunks': search_results,
+                'total_context_length': len(context)
+            }
+        
+        return result

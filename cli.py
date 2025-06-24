@@ -14,13 +14,21 @@ def main():
     add_parser = subparsers.add_parser('add', help='Add document to knowledge base')
     add_parser.add_argument('file_path', help='Path to document file')
     
+    # Analyze document command
+    analyze_parser = subparsers.add_parser('analyze', help='Analyze document extraction and chunking')
+    analyze_parser.add_argument('file_path', help='Path to document file')
+    
     # Query command
     query_parser = subparsers.add_parser('query', help='Search knowledge base')
     query_parser.add_argument('question', help='Question to ask')
-    query_parser.add_argument('--results', '-r', type=int, default=5, 
-                             help='Number of context chunks to retrieve (default: 5)')
+    query_parser.add_argument('--results', '-r', type=int, default=15, 
+                             help='Number of context chunks to retrieve (default: 15)')
     query_parser.add_argument('--model', '-m', type=str, default='auto',
                              help='LLM model to use (default: auto-select based on resources)')
+    query_parser.add_argument('--debug', '-d', action='store_true',
+                             help='Enable debug mode to show retrieved chunks')
+    query_parser.add_argument('--timeout', '-t', type=int, default=200,
+                             help='Request timeout in seconds (default: 200)')
     
     # Interactive mode
     interactive_parser = subparsers.add_parser('interactive', help='Start interactive mode')
@@ -47,9 +55,20 @@ def main():
             print(f"Error adding document: {e}")
             sys.exit(1)
     
+    elif args.command == 'analyze':
+        if not os.path.exists(args.file_path):
+            print(f"Error: File {args.file_path} not found")
+            sys.exit(1)
+        
+        try:
+            rag.analyze_document(args.file_path)
+        except Exception as e:
+            print(f"Error analyzing document: {e}")
+            sys.exit(1)
+    
     elif args.command == 'query':
         try:
-            result = rag.query(args.question, args.results)
+            result = rag.query(args.question, args.results, debug=args.debug, timeout=args.timeout)
             print(f"Question: {result['question']}")
             print(f"Answer: {result['answer']}")
             print(f"\nSources ({result['context_chunks']} chunks):")

@@ -60,6 +60,8 @@ Your RAG system is now running. Key commands:
 
 - **Add document:** `python cli.py add file.pdf`
 - **Ask question:** `python cli.py query "your question"`
+- **Debug mode:** `python cli.py query "question" --debug`
+- **Analyze document:** `python cli.py analyze file.docx`
 - **Interactive mode:** `python cli.py interactive`
 - **Check resources:** `python resource_monitor.py`
 
